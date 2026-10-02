@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang = 'en'>
+<head>
+    <title>Project 2</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <div id="splash">
+        <div id="splash-content">
+            <h1>Atlas of NYC Restaurants</h1>
+            <p>
+                This is placeholder splash text.<br>
+            </p>
+            <button id="splash-close">Explore the Atlas</button>
+        </div>
+    </div>
+
+    <button id="reset-zoom">Reset Zoom</button>
+    
+    <div id="map"></div>
+    <div id="map-title">
+        <span>Atlas of NYC Restaurants</span>
+    </div>
+    <div id="map-footer">Source: Add Source Here</div>
+
+    <div class="filter-panel">
+        <h2>Cuisines</h2>
+        <div class="filter-actions">
+            <a id="select-all">Select all</a>
+            <a id="clear-all">Clear</a>
+        </div>
+        <div id="checkboxes"></div>
+    </div>
+
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.30.0/mapbox-gl.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+</body>
+
+</html>
