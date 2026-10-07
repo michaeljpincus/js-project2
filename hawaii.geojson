@@ -1,0 +1,7 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Hawai'i" },              "geometry": { "type": "Point", "coordinates": [-157.10, 20.90] } }
+  ]
+}
+

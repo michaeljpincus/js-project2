@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Puerto Rico" },              "geometry": { "type": "Point", "coordinates": [-66.45, 18.22] } },
+    { "type": "Feature", "properties": { "name": "U.S. Virgin Islands" },      "geometry": { "type": "Point", "coordinates": [-64.90, 18.34] } },
+    { "type": "Feature", "properties": { "name": "Guam" },                     "geometry": { "type": "Point", "coordinates": [144.79, 13.44] } },
+    { "type": "Feature", "properties": { "name": "Northern Mariana Islands" }, "geometry": { "type": "Point", "coordinates": [145.75, 15.18] } },
+    { "type": "Feature", "properties": { "name": "American Samoa" },           "geometry": { "type": "Point", "coordinates": [-170.70, -14.27] } },
+    { "type": "Feature", "properties": { "name": "Wake Island" },              "geometry": { "type": "Point", "coordinates": [166.65, 19.28] } },
+    { "type": "Feature", "properties": { "name": "Midway Atoll" },             "geometry": { "type": "Point", "coordinates": [-177.37, 28.21] } },
+    { "type": "Feature", "properties": { "name": "Johnston Atoll" },           "geometry": { "type": "Point", "coordinates": [-169.53, 16.73] } },
+    { "type": "Feature", "properties": { "name": "Palmyra Atoll" },            "geometry": { "type": "Point", "coordinates": [-162.08, 5.89] } },
+    { "type": "Feature", "properties": { "name": "Navassa Island" },           "geometry": { "type": "Point", "coordinates": [-75.01, 18.41] } }
+  ]
+}
