@@ -1,18 +1,16 @@
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@^6.12.0/dist/maplibre-gl.mjs';
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
 
+
 /* ==========================================================================
-   1. CONSTANTS
+   1. CONFIG
    ========================================================================== */
+
+const INITIAL_CENTER = [-75.93286341656814, 42.6617285841208];
+const INITIAL_ZOOM = 6.5;
 
 // One color list shared by the scatterplot and the map.
 // Index 0 is the fallback, then ownership 1, 2, 3.
-
-const INITIAL_CENTER = [-75.93286341656814, 42.6617285841208]
-const INITIAL_ZOOM = 6.5
-
-const resetButton = document.getElementById('reset-zoom');
-
 const OWNERSHIP_COLORS = ['gray', '#009E73', '#0072B2', '#E69F00'];
 const SELECTED_COLOR = 'crimson';
 
@@ -20,19 +18,33 @@ const DOT_RADIUS = 4;
 const DOT_RADIUS_SELECTED = 8;
 
 const MARGIN = { top: 40, right: 20, bottom: 50, left: 70 };
-const WIDTH = 500 - MARGIN.left - MARGIN.right;
-const HEIGHT = 420 - MARGIN.top - MARGIN.bottom;   // was 400
+const MIN_PLOT_HEIGHT = 80;
 
 const STUDENT_MAX = 100000;
 const radiusScale = d3.scaleLinear()
   .domain([0, STUDENT_MAX])
   .range([5, 100]);   // pixel radius on the map
 
+// Shared color scale: ownership code -> color
+const color = d3.scaleThreshold()
+  .domain([1, 2, 3])
+  .range(OWNERSHIP_COLORS);
+
 
 /* ==========================================================================
-   2. DATA
-   Load this BEFORE creating the map, so the map's 'load' event can't fire
-   while we're still waiting on the file.
+   2. DOM REFERENCES
+   ========================================================================== */
+
+const resetButton = document.getElementById('reset-zoom');
+const scatterBox = document.getElementById('scatter');
+const info = d3.select('#info');
+const legend = d3.select('#legend');
+const collegeSelect = d3.select('#college-select');
+
+
+/* ==========================================================================
+   3. DATA
+   Load this BEFORE creating the map.
    ========================================================================== */
 
 const geojson = await d3.json('colleges.geojson');
@@ -42,23 +54,51 @@ geojson.features.forEach((f, i) => {
   f.properties.id = f.properties.id ?? i;
 });
 
+const allProps = geojson.features.map(f => f.properties);
 const featureById = new Map(geojson.features.map(f => [f.properties.id, f]));
 
 // Colleges missing either value can't be plotted (they still appear on the map).
-const plotData = geojson.features
-  .map(f => f.properties)
-  .filter(d => d.avg_net_price != null && d.earnings_10y_post_grad != null);
+const plotData = allProps.filter(
+  d => d.avg_net_price != null && d.earnings_10y_post_grad != null
+);
+const plotById = new Map(plotData.map(d => [d.id, d]));
 
 
 /* ==========================================================================
-   3. SHARED STATE
+   4. SHARED STATE
    ========================================================================== */
 
 let selectedId = null;
+let mapReady = false;   // true once the map style and layers exist
 
 
 /* ==========================================================================
-   4. MAP SETUP
+   5. HELPERS
+   ========================================================================== */
+
+// Formatters that tolerate missing data
+const fmtInt = v => (v == null ? '—' : d3.format(',')(v));
+const fmtUSD = v => (v == null ? '—' : d3.format('$,.0f')(v));
+const fmtPct = v => (v == null ? '—' : d3.format('.0%')(v));  
+const fmtK = v => `$${v / 1000}K`;
+
+const bold = v => `<strong>${v}</strong>`;
+
+// Escape text from the data so a name containing & or < can't break the HTML
+const esc = s => String(s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;');
+
+function popupHTML({ name, ownership_label }) {
+  return `
+    <span class="college-name">${esc(name)}</span><br>
+    <span class="ownership-label">${esc(ownership_label)}</span>`;
+}
+
+
+/* ==========================================================================
+   6. MAP SETUP (creation only; layers and events are in section 14)
    ========================================================================== */
 
 const map = new maplibregl.Map({
@@ -66,7 +106,7 @@ const map = new maplibregl.Map({
   center: INITIAL_CENTER,
   zoom: INITIAL_ZOOM,
   minZoom: 6.5,
-  style: 'basemap.json' // custom basemap
+  style: 'basemap.json'   // custom basemap
 });
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
@@ -77,78 +117,57 @@ const selectedPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: f
 
 
 /* ==========================================================================
-   5. SCATTERPLOT
+   7. SCATTERPLOT: structure
+   Sizes and positions are set in updateChart() (section 8).
    ========================================================================== */
 
-const svg = d3.select('#scatter')
-  .append('svg')
-  .attr('viewBox', `0 0 ${WIDTH + MARGIN.left + MARGIN.right} ${HEIGHT + MARGIN.top + MARGIN.bottom}`)
-  .style('width', '100%')
-  .style('height', 'auto')
-  .append('g')
+let WIDTH = 500 - MARGIN.left - MARGIN.right;
+let HEIGHT = 420 - MARGIN.top - MARGIN.bottom;
+
+// Root SVG is sized in pixels by updateChart(); no viewBox, so nothing is scaled.
+const svgRoot = d3.select('#scatter').append('svg');
+
+const svg = svgRoot.append('g')
   .attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
 
-// Scales: data units -> pixels
-const x = d3.scaleLinear()
-  .domain(d3.extent(plotData, d => d.avg_net_price))
-  .range([0, WIDTH]);
-
-const y = d3.scaleLinear()
-  .domain(d3.extent(plotData, d => d.earnings_10y_post_grad))
-  .range([HEIGHT, 0]);
-
-const color = d3.scaleThreshold()
-  .domain([1, 2, 3])
-  .range(OWNERSHIP_COLORS);
+// Scales (ranges are set in updateChart)
+const x = d3.scaleLinear().domain(d3.extent(plotData, d => d.avg_net_price));
+const y = d3.scaleLinear().domain(d3.extent(plotData, d => d.earnings_10y_post_grad));
 
 // Axes
-svg.append('g')
-  .attr('class', 'axis x-axis')
-  .attr('transform', `translate(0,${HEIGHT})`)
-  .call(d3.axisBottom(x).tickFormat(d => `$${d / 1000}K`));
+const xAxisG = svg.append('g').attr('class', 'axis x-axis');
+const yAxisG = svg.append('g').attr('class', 'axis y-axis');
 
-svg.append('g')
-  .attr('class', 'axis y-axis')
-  .call(d3.axisLeft(y).tickFormat(d => `$${d / 1000}K`));
-
-// Chart title 
+// Titles
 svg.append('text')
   .attr('class', 'chart-title')
-  .attr('x', -MARGIN.left + 10)     // left-aligned with the chart's outer edge
-  .attr('y', -MARGIN.top + 22)      // baseline, measured from the top of the SVG
+  .attr('x', -MARGIN.left + 10)
+  .attr('y', -MARGIN.top + 22)
   .text('Cost vs. earnings');
 
-// x-axis title
-svg.append('text')
+const xLabel = svg.append('text')
   .attr('class', 'axis-label')
-  .attr('x', WIDTH / 2)
-  .attr('y', HEIGHT + 40)
   .attr('text-anchor', 'middle')
   .text('Average net cost of attendance');
 
-// y-axis title (rotated)
-svg.append('text')
+const yLabel = svg.append('text')
   .attr('class', 'axis-label')
   .attr('transform', 'rotate(-90)')
-  .attr('x', -HEIGHT / 2)
   .attr('y', -MARGIN.left + 16)
   .attr('text-anchor', 'middle')
   .text('Median earnings 10 years after graduation');
 
 // Dots
-svg.selectAll('.dot')
+const dots = svg.selectAll('.dot')
   .data(plotData, d => d.id)
   .join('circle')
   .attr('class', 'dot')
-  .attr('cx', d => x(d.avg_net_price))
-  .attr('cy', d => y(d.earnings_10y_post_grad))
   .attr('r', DOT_RADIUS)
   .attr('fill', d => color(d.ownership))
   .attr('opacity', 0.6)
   .style('cursor', 'pointer');
 
-// Hover ring
-
+// Hover ring (drawn when hovering a college on the map)
 const hoverRing = svg.append('circle')
   .attr('class', 'hover-ring')
   .attr('r', 11)                     // bigger than the selected dot (8)
@@ -159,7 +178,7 @@ const hoverRing = svg.append('circle')
   .style('display', 'none');
 
 function showHoverRing(id) {
-  const d = plotData.find(p => p.id === id);
+  const d = plotById.get(id);
   if (!d) return hideHoverRing();    // this college has no dot
   hoverRing
     .attr('cx', x(d.avg_net_price))
@@ -171,18 +190,15 @@ function hideHoverRing() {
   hoverRing.style('display', 'none');
 }
 
-/* ==========================================================================
-   6. SCATTERPLOT TOOLTIP
-   ========================================================================== */
-
+// Tooltip
 const tooltip = d3.select('body')
   .append('div')
   .attr('class', 'scatter-tooltip')
   .style('position', 'absolute')
-  .style('pointer-events', 'none') // never blocks the mouse
+  .style('pointer-events', 'none')   // never blocks the mouse
   .style('opacity', 0);
 
-// Place the tooltip to the left of a page position (x, y).
+// Place the tooltip to the left of a page position.
 function placeTooltip(pageX, pageY) {
   const w = tooltip.node().offsetWidth;
   tooltip
@@ -190,15 +206,49 @@ function placeTooltip(pageX, pageY) {
     .style('top', `${pageY - 28}px`);
 }
 
-/* ==========================================================================
-   INFO PARAGRAPH
-   ========================================================================== */
-const info = d3.select('#info');
 
-// Formatters that tolerate missing data
-const fmtInt = v => (v == null ? '—' : d3.format(',')(v));
-const fmtUSD = v => (v == null ? '—' : d3.format('$,.0f')(v));
-const fmtPct = v => (v == null ? '—' : d3.format('.0%')(v));   // assumes 0–1 values
+/* ==========================================================================
+   8. SCATTERPLOT: responsive layout
+   Fits the plot to whatever space the container has. Only the plot's
+   dimensions change; text and circles stay at normal size.
+   ========================================================================== */
+
+function updateChart() {
+  const cs = getComputedStyle(scatterBox);
+  const availW = scatterBox.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const availH = scatterBox.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+
+  WIDTH  = Math.max(100, availW - MARGIN.left - MARGIN.right);
+  HEIGHT = Math.max(MIN_PLOT_HEIGHT, availH - MARGIN.top - MARGIN.bottom);
+
+  svgRoot
+    .attr('width',  WIDTH  + MARGIN.left + MARGIN.right)
+    .attr('height', HEIGHT + MARGIN.top  + MARGIN.bottom);
+
+  x.range([0, WIDTH]);
+  y.range([HEIGHT, 0]);
+
+  xAxisG
+    .attr('transform', `translate(0,${HEIGHT})`)
+    .call(d3.axisBottom(x).ticks(Math.max(3, WIDTH / 70)).tickFormat(fmtK));
+
+  yAxisG
+    .call(d3.axisLeft(y).ticks(Math.max(2, HEIGHT / 40)).tickFormat(fmtK));
+
+  xLabel.attr('x', WIDTH / 2).attr('y', HEIGHT + 40);
+  yLabel.attr('x', -HEIGHT / 2);
+
+  dots
+    .attr('cx', d => x(d.avg_net_price))
+    .attr('cy', d => y(d.earnings_10y_post_grad));
+
+  hideHoverRing();   // its old position is stale after a resize
+}
+
+
+/* ==========================================================================
+   9. INFO PANEL
+   ========================================================================== */
 
 function showInfoPlaceholder() {
   info.html('');
@@ -207,36 +257,25 @@ function showInfoPlaceholder() {
     .text('Click a college on the map or chart to see details.');
 }
 
-showInfoPlaceholder();
-
-const b = v => `<strong>${v}</strong>`;
-
-// Escape text from the data so a name containing & or < can't break the HTML
-const esc = s => String(s)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;');
-
-
 function infoParagraph(p) {
   const parts = [];
 
   if (p.student_pop != null)
-    parts.push(`${esc(p.name)} enrolls about ${b(fmtInt(p.student_pop))} students.`);
+    parts.push(`${esc(p.name)} enrolls about ${bold(fmtInt(p.student_pop))} students.`);
 
   if (p.acceptance_rate != null)
-    parts.push(`It admits ${b(fmtPct(p.acceptance_rate))} of applicants, and ${
+    parts.push(`It admits ${bold(fmtPct(p.acceptance_rate))} of applicants, and ${
       p.graduation_rate != null
-        ? `${b(fmtPct(p.graduation_rate))} of students go on to graduate.`
+        ? `${bold(fmtPct(p.graduation_rate))} of students go on to graduate.`
         : 'graduation data is unavailable.'}`);
   else if (p.graduation_rate != null)
-    parts.push(`${b(fmtPct(p.graduation_rate))} of students go on to graduate.`);
+    parts.push(`${bold(fmtPct(p.graduation_rate))} of students go on to graduate.`);
 
   if (p.avg_net_price != null)
-    parts.push(`The average net price is ${b(fmtUSD(p.avg_net_price))} per year.`);
+    parts.push(`The average net price is ${bold(fmtUSD(p.avg_net_price))} per year.`);
 
   if (p.earnings_10y_post_grad != null)
-    parts.push(`Ten years after graduation, earnings average around ${b(fmtUSD(p.earnings_10y_post_grad))}.`);
+    parts.push(`Ten years after graduation, earnings average around ${bold(fmtUSD(p.earnings_10y_post_grad))}.`);
 
   return parts.length ? parts.join(' ') : 'No additional data is available for this college.';
 }
@@ -256,81 +295,82 @@ function showInfo(p) {
   info.append('div').attr('class', 'info-type').text(p.ownership_label);
   info.append('p').attr('class', 'info-text').html(infoParagraph(p));
 }
+
+
 /* ==========================================================================
-   LEGEND
+   10. LEGEND
    ========================================================================== */
 
+function buildLegend() {
+  // Color: one row per ownership type found in the data
+  legend.append('div').attr('class', 'legend-title').text('Ownership');
 
-const legend = d3.select('#legend');
+  const owners = Array.from(
+    d3.group(allProps.filter(p => p.ownership != null), p => p.ownership),
+    ([ownership, group]) => ({ ownership, label: group[0].ownership_label })
+  ).sort((a, b) => a.ownership - b.ownership);
 
-// --- Color: one row per ownership type found in the data ---
-legend.append('div').attr('class', 'legend-title').text('Ownership');
+  const legendRows = legend.selectAll('.legend-row')
+    .data(owners)
+    .join('div')
+    .attr('class', 'legend-row');
 
-const owners = Array.from(
-  d3.group(geojson.features.map(f => f.properties).filter(p => p.ownership != null), p => p.ownership),
-  ([ownership, rows]) => ({ ownership, label: rows[0].ownership_label })
-).sort((a, b) => a.ownership - b.ownership);
+  legendRows.append('span')
+    .attr('class', 'legend-swatch')
+    .style('background', d => color(d.ownership));
+  legendRows.append('span').text(d => d.label);
 
-const rows = legend.selectAll('.legend-row')
-  .data(owners)
-  .join('div')
-  .attr('class', 'legend-row');
+  // Size: sample circles at example enrollments
+  legend.append('div').attr('class', 'legend-title').text('Enrollment');
 
-rows.append('span')
-  .attr('class', 'legend-swatch')
-  .style('background', d => color(d.ownership));
-rows.append('span').text(d => d.label);
+  const sizes = legend.append('div')
+    .attr('class', 'legend-sizes')
+    .selectAll('.legend-size')
+    .data([5000, 25000, 50000])        // adjust to suit your data
+    .join('div')
+    .attr('class', 'legend-size');
 
-// --- Size: sample circles at example enrollments ---
-legend.append('div').attr('class', 'legend-title').text('Enrollment');
+  sizes.append('div')
+    .attr('class', 'legend-circle')
+    .style('width', d => `${2 * radiusScale(d)}px`)
+    .style('height', d => `${2 * radiusScale(d)}px`);
+  sizes.append('div').text(d => d3.format(',')(d));
+}
 
-const sizes = legend.append('div')
-  .attr('class', 'legend-sizes')
-  .selectAll('.legend-size')
-  .data([5000, 25000, 50000])        // adjust to suit your data
-  .join('div')
-  .attr('class', 'legend-size');
-
-sizes.append('div')
-  .attr('class', 'legend-circle')
-  .style('width', d => `${2 * radiusScale(d)}px`)
-  .style('height', d => `${2 * radiusScale(d)}px`);
-sizes.append('div').text(d => d3.format(',')(d));
 
 /* ==========================================================================
-   DROPDOWN
+   11. DROPDOWN
    ========================================================================== */
 
-const collegeSelect = d3.select('#college-select');
+function buildDropdown() {
+  const sorted = [...allProps].sort((a, b) => d3.ascending(a.name, b.name));
 
-const colleges = geojson.features
-  .map(f => f.properties)
-  .sort((a, b) => d3.ascending(a.name, b.name));
+  collegeSelect.append('option')
+    .attr('value', '')
+    .text('Select a college…');
 
-collegeSelect.append('option')
-  .attr('value', '')
-  .text('Select a college…');
+  collegeSelect.selectAll('.college-option')
+    .data(sorted, d => d.id)
+    .join('option')
+    .attr('class', 'college-option')
+    .attr('value', d => d.id)
+    .text(d => d.name);
 
-collegeSelect.selectAll('.college-option')
-  .data(colleges, d => d.id)
-  .join('option')
-  .attr('class', 'college-option')
-  .attr('value', d => d.id)
-  .text(d => d.name);
+  collegeSelect.on('change', function () {
+    const option = this.selectedOptions[0];
+    if (!option.value) return clearSelection();
+    selectCollege(d3.select(option).datum().id, { fly: true });
+  });
+}
 
-collegeSelect.on('change', function () {
-  const option = this.selectedOptions[0];
-  if (!option.value) return clearSelection();
-  selectCollege(d3.select(option).datum().id, { fly: true });
-});
 
 /* ==========================================================================
-   7. SELECTION LOGIC (the bridge between chart and map)
-   Both views call selectCollege(id); it updates both.
+   12. SELECTION LOGIC (the bridge between chart and map)
+   Both views call selectCollege(id); it updates everything.
    ========================================================================== */
 
 function highlightDot(id) {
-  svg.selectAll('.dot')
+  dots
     .attr('fill', d => (d.id === id ? SELECTED_COLOR : color(d.ownership)))
     .attr('r', d => (d.id === id ? DOT_RADIUS_SELECTED : DOT_RADIUS));
 }
@@ -339,20 +379,14 @@ function flyToId(id) {
   map.flyTo({ center: featureById.get(id).geometry.coordinates, zoom: 10 });
 }
 
-function popupHTML({ name, ownership_label }) {
-  return `
-    <span class="college-name">${name}</span><br>
-    <span class="ownership-label">${ownership_label}</span>`;
-}
-
 function selectCollege(id, { fly = false } = {}) {
   const feature = featureById.get(id);
   if (!feature) return;
 
   selectedId = id;
-  collegeSelect.property('value', id); 
+  collegeSelect.property('value', id);
   showInfo(feature.properties);
-  hoverPopup.remove(); // avoid two identical popups
+  hoverPopup.remove();   // avoid two identical popups
   highlightDot(id);
 
   selectedPopup
@@ -366,43 +400,122 @@ function selectCollege(id, { fly = false } = {}) {
 function clearSelection() {
   selectedId = null;
   selectedPopup.remove();
-  collegeSelect.property('value', ''); 
+  collegeSelect.property('value', '');
   showInfoPlaceholder();
   highlightDot(null);
 }
 
 
 /* ==========================================================================
-   8. SCATTERPLOT EVENTS
+   13. FILTERS (config-driven)
+   mode 'max' keeps colleges with value <= slider; 'min' keeps value >= slider.
+   To add a filter: add an entry here and a matching slider block in the HTML.
    ========================================================================== */
 
-svg.selectAll('.dot')
-  .on('click', (event, d) => {
-    selectCollege(d.id, { fly: true });
-  })
-  .on('mouseover', function (event, d) {
-    d3.select(this).attr('stroke', 'black').attr('stroke-width', 1.5);
-    tooltip.style('opacity', 1).text(d.name);
-  })
-  .on('mousemove', (event) => {
-    placeTooltip(event.pageX, event.pageY);
-  })
-  .on('mouseleave', function () {
-    d3.select(this).attr('stroke', null);
-    tooltip.style('opacity', 0);
+const roundedExtent = (prop, step) => {
+  const [lo, hi] = d3.extent(allProps, p => p[prop]);
+  return [Math.floor(lo / step) * step, Math.ceil(hi / step) * step];
+};
+
+const FILTERS = [
+  {
+    prop: 'avg_net_price', mode: 'max',
+    slider: 'price-slider', label: 'price-value',
+    range: roundedExtent('avg_net_price', 1000), step: 500,
+    format: d3.format('$,.0f')
+  },
+  {
+    prop: 'earnings_10y_post_grad', mode: 'min',
+    slider: 'earnings-slider', label: 'earnings-value',
+    range: roundedExtent('earnings_10y_post_grad', 1000), step: 1000,
+    format: d3.format('$,.0f')
+  },
+  {
+    prop: 'acceptance_rate', mode: 'max',
+    slider: 'accept-slider', label: 'accept-value',
+    range: [0, 1], step: 0.01,   // values are 0–1 in the data
+    format: d3.format('.0%')
+  }
+];
+
+// "No filter" is the loosest position: max end for 'max', min end for 'min'
+const isActive = f => f.value !== f.off;
+
+// Does a college pass every active filter?
+// Missing data is only excluded while that filter is actually narrowed.
+function passes(p) {
+  return FILTERS.every(f => {
+    if (!isActive(f)) return true;
+    const v = p[f.prop];
+    if (v == null) return false;
+    return f.mode === 'max' ? v <= f.value : v >= f.value;
   });
+}
+
+function applyFilters() {
+  // Labels
+  FILTERS.forEach(f => d3.select(`#${f.label}`).text(f.format(f.value)));
+
+  // Scatterplot
+  dots.attr('display', d => (passes(d) ? null : 'none'));
+  hideHoverRing();
+
+  // Map
+  if (mapReady) {
+    const clauses = FILTERS.filter(isActive).map(f => [
+      'all',
+      ['has', f.prop],
+      [f.mode === 'max' ? '<=' : '>=', ['get', f.prop], f.value]
+    ]);
+    map.setFilter('colleges', clauses.length ? ['all', ...clauses] : null);
+  }
+
+  // Deselect if the selected college was filtered out
+  if (selectedId !== null && !passes(featureById.get(selectedId).properties)) {
+    clearSelection();
+  }
+}
+
+function setupFilters() {
+  FILTERS.forEach(f => {
+    f.el = document.getElementById(f.slider);
+    f.off = f.mode === 'max' ? f.range[1] : f.range[0];
+    f.value = f.off;
+    Object.assign(f.el, { min: f.range[0], max: f.range[1], step: f.step, value: f.value });
+    f.el.addEventListener('input', () => {
+      f.value = +f.el.value;
+      applyFilters();
+    });
+  });
+}
 
 
 /* ==========================================================================
-   9. MAP LAYERS AND EVENTS
+   14. EVENTS
    ========================================================================== */
 
-map.on('load', () => {
+function setupScatterEvents() {
+  dots
+    .on('click', (event, d) => {
+      selectCollege(d.id, { fly: true });
+    })
+    .on('mouseover', function (event, d) {
+      d3.select(this).attr('stroke', 'black').attr('stroke-width', 1.5);
+      tooltip.style('opacity', 1).text(d.name);
+    })
+    .on('mousemove', (event) => {
+      placeTooltip(event.pageX, event.pageY);
+    })
+    .on('mouseleave', function () {
+      d3.select(this).attr('stroke', null);
+      tooltip.style('opacity', 0);
+    });
+}
 
-  // --- Source and layer ---------------------------------------------------
+function setupMapLayers() {
   map.addSource('colleges', {
     type: 'geojson',
-    data: geojson, // same object as the chart, so ids match
+    data: geojson,        // same object as the chart, so ids match
     generateId: true
   });
 
@@ -430,10 +543,11 @@ map.on('load', () => {
         STUDENT_MAX, radiusScale(STUDENT_MAX)
       ]
     }
-  }, 'cities'); // draw beneath the 'cities' layer
+  }, 'cities');   // draw beneath the 'cities' layer
+}
 
-  // --- Hover --------------------------------------------------------------
-  let hoveredFeatureId = null; // MapLibre's generated id, used for feature-state
+function setupMapEvents() {
+  let hoveredFeatureId = null;   // MapLibre's generated id, used for feature-state
 
   function clearHoverState() {
     if (hoveredFeatureId !== null) {
@@ -442,11 +556,12 @@ map.on('load', () => {
     }
   }
 
+  // Hover
   map.on('mousemove', 'colleges', (e) => {
-  const feature = e.features[0];
-  showHoverRing(feature.properties.id);   // <-- new
+    const feature = e.features[0];
+    showHoverRing(feature.properties.id);
 
-  if (hoveredFeatureId !== feature.id) clearHoverState();
+    if (hoveredFeatureId !== feature.id) clearHoverState();
     hoveredFeatureId = feature.id;
     map.setFeatureState({ source: 'colleges', id: hoveredFeatureId }, { hover: true });
 
@@ -466,31 +581,49 @@ map.on('load', () => {
 
   map.on('mouseleave', 'colleges', () => {
     clearHoverState();
-    hideHoverRing();  
+    hideHoverRing();
     hoverPopup.remove();
     map.getCanvas().style.cursor = '';
   });
 
+  // Click: selects a college, or clears if clicking empty map
+  map.on('click', (e) => {
+    const hits = map.queryRenderedFeatures(e.point, { layers: ['colleges'] });
+    if (hits.length) selectCollege(hits[0].properties.id, { fly: true });
+    else clearSelection();
+  });
+
+  // Reset-zoom button
   map.on('zoom', () => {
     resetButton.style.display = map.getZoom() > INITIAL_ZOOM ? 'block' : 'none';
   });
 
-  // --- Click --------------------------------------------------------------
-  // One handler: clicking a college selects it, clicking empty map clears.
-  map.on('click', (e) => {
-    const hits = map.queryRenderedFeatures(e.point, { layers: ['colleges'] });
-    if (hits.length) selectCollege(hits[0].properties.id, {fly: true});
-    else clearSelection();
-  });
-
   resetButton.addEventListener('click', () => {
     clearSelection();
-    map.flyTo({
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
-      duration: 1000
-    });
+    map.flyTo({ center: INITIAL_CENTER, zoom: INITIAL_ZOOM, duration: 1000 });
   });
+}
 
 
+/* ==========================================================================
+   15. INIT
+   ========================================================================== */
+
+buildLegend();
+buildDropdown();
+showInfoPlaceholder();
+
+setupFilters();
+setupScatterEvents();
+
+new ResizeObserver(updateChart).observe(scatterBox);
+updateChart();
+
+applyFilters();   // initialize slider labels
+
+map.on('load', () => {
+  setupMapLayers();
+  setupMapEvents();
+  mapReady = true;
+  applyFilters();   // in case a slider moved before the map finished loading
 });

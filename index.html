@@ -19,8 +19,35 @@
         <select id="college-select" aria-label="Choose a college"></select>
     </div>
     <div id="legend"></div>
+
     <div id="story">
+
         <div id="info"></div>
+
+        <div id="filters">
+
+        <div class="filter">
+            <label for="price-slider">
+                Max net cost: <strong id="price-value"></strong>
+            </label>
+            <input type="range" id="price-slider">
+        </div>
+
+        <div class="filter">
+            <label for="earnings-slider">
+                Min earnings (10 yrs): <strong id="earnings-value"></strong>
+            </label>
+            <input type="range" id="earnings-slider">
+        </div>
+
+        <div class="filter">
+            <label for="accept-slider">
+                Max acceptance rate: <strong id="accept-value"></strong>
+            </label>
+            <input type="range" id="accept-slider">
+        </div>
+
+    </div>
         <div id="scatter"></div>
     </div>
 
