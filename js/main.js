@@ -7,6 +7,12 @@ import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
 
 // One color list shared by the scatterplot and the map.
 // Index 0 is the fallback, then ownership 1, 2, 3.
+
+const INITIAL_CENTER = [-75.93286341656814, 42.6617285841208]
+const INITIAL_ZOOM = 6.5
+
+const resetButton = document.getElementById('reset-zoom');
+
 const OWNERSHIP_COLORS = ['gray', '#009E73', '#0072B2', '#E69F00'];
 const SELECTED_COLOR = 'crimson';
 
@@ -57,9 +63,9 @@ let selectedId = null;
 
 const map = new maplibregl.Map({
   container: 'map',
-  center: [-75.63286341656814, 42.7617285841208],
-  zoom: 6.4,
-  minZoom: 3,
+  center: INITIAL_CENTER,
+  zoom: INITIAL_ZOOM,
+  minZoom: 6.5,
   style: 'basemap.json' // custom basemap
 });
 
@@ -465,6 +471,10 @@ map.on('load', () => {
     map.getCanvas().style.cursor = '';
   });
 
+  map.on('zoom', () => {
+    resetButton.style.display = map.getZoom() > INITIAL_ZOOM ? 'block' : 'none';
+  });
+
   // --- Click --------------------------------------------------------------
   // One handler: clicking a college selects it, clicking empty map clears.
   map.on('click', (e) => {
@@ -472,4 +482,15 @@ map.on('load', () => {
     if (hits.length) selectCollege(hits[0].properties.id, {fly: true});
     else clearSelection();
   });
+
+  resetButton.addEventListener('click', () => {
+    clearSelection();
+    map.flyTo({
+      center: INITIAL_CENTER,
+      zoom: INITIAL_ZOOM,
+      duration: 1000
+    });
+  });
+
+
 });
