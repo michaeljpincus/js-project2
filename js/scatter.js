@@ -78,15 +78,53 @@ const tooltip = d3.select('body')
   .append('div')
   .attr('class', 'scatter-tooltip')
   .style('position', 'absolute')
-  .style('pointer-events', 'none')   // never blocks the mouse
+  .style('pointer-events', 'none')
   .style('opacity', 0);
 
-// Place the tooltip to the left of a page position.
 function placeTooltip(pageX, pageY) {
-  const w = tooltip.node().offsetWidth;
+  const node = tooltip.node();
+  const w = node.offsetWidth;
+  const h = node.offsetHeight;
+
+  const padding = 8;
+  const gap = 12;
+
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
+
+  // Convert page coordinates to viewport coordinates.
+  const x = pageX - window.scrollX;
+  const y = pageY - window.scrollY;
+
+  // Prefer the left, but flip right if it won't fit.
+  let left = x - w - gap;
+
+  if (left < padding) {
+    left = x + gap;
+  }
+
+  // Keep the tooltip inside the horizontal viewport.
+  left = Math.max(
+    padding,
+    Math.min(left, viewportWidth - w - padding)
+  );
+
+  // Position above the pointer, but move below if necessary.
+  let top = y - h - gap;
+
+  if (top < padding) {
+    top = y + gap;
+  }
+
+  // Keep the tooltip inside the vertical viewport.
+  top = Math.max(
+    padding,
+    Math.min(top, viewportHeight - h - padding)
+  );
+
   tooltip
-    .style('left', `${pageX - w - 12}px`)
-    .style('top', `${pageY - 28}px`);
+    .style('left', `${left + window.scrollX}px`)
+    .style('top', `${top + window.scrollY}px`);
 }
 
 /* --------------------------------------------------------------------------
