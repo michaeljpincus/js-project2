@@ -22,7 +22,7 @@ export function showInfoPlaceholder() {
   info.html('');
   info.append('div')
     .attr('class', 'info-placeholder')
-    .text('Click a college on the map or chart to see details.');
+    .text('Click a college on the map or chart to see data from the 2026 U.S. Department of Education College Scorecard.');
 }
 
 function infoParagraph(p) {
