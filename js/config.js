@@ -27,3 +27,6 @@ export const radiusScale = d3.scaleLinear()
 export const color = d3.scaleThreshold()
   .domain([1, 2, 3])
   .range(OWNERSHIP_COLORS);
+
+// Mobile handler for zoom 
+export const isMobile = window.matchMedia("(max-width: 768px)").matches;

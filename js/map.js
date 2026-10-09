@@ -5,6 +5,7 @@ import {
 import { geojson } from './data.js';
 import { state } from './state.js';
 import { popupHTML } from './helpers.js';
+import { isMobile } from './config.js'
 
 /* ==========================================================================
    MAP: creation, the 'colleges' layer, and map interaction.
@@ -17,9 +18,9 @@ const resetButton = document.getElementById('reset-zoom');
 export const map = new maplibregl.Map({
   container: 'map',
   center: INITIAL_CENTER,
-  zoom: INITIAL_ZOOM,
-  minZoom: 6.5,
-  style: 'basemap.json'   // custom basemap
+  zoom: isMobile ? 5 : INITIAL_ZOOM,
+  minZoom: isMobile ? 3 : 5.5,
+  style: 'basemap.json'
 });
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
