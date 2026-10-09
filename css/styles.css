@@ -313,6 +313,7 @@ html, body {
   }
 
   /* Zoom buttons cost space; pinch-zoom works and "Reset zoom" covers the rest */
+  #reset-zoom { display: none !important; visibility: hidden !important; }
   .maplibregl-ctrl-top-right { display: none; }
   .maplibregl-ctrl-bottom-right { margin-bottom: 14px; }
 
