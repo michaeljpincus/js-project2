@@ -20,7 +20,7 @@ export const map = new maplibregl.Map({
   center: INITIAL_CENTER,
   zoom: isMobile ? 5 : INITIAL_ZOOM,
   minZoom: isMobile ? 3 : 5.5,
-  style: 'basemap.json'
+  style: 'https://michaeljpincus.github.io/basemap/basemap.json'
 });
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
