@@ -340,8 +340,8 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
-const hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
-const selectedPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+const hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, maxWidth: '400px' });
+const selectedPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '400px' });
 
 function addCollegeLayer() {
   map.addSource('colleges', { type: 'geojson', data: geojson, generateId: true });
