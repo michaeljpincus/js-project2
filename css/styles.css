@@ -79,8 +79,9 @@ html, body {
 }
 
 #scatter {
-  flex: 1 1 0;
-  min-height: 140px;     /* the chart stops compressing here */
+  flex: 0 0 auto;
+  height: 550px;
+  margin-top: auto;    /* anchors the chart to the bottom */
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
@@ -263,8 +264,8 @@ html, body {
 }
 
 .info-text {
-  margin-top: 8px;
-  margin-bottom: 0;
+  margin-top: 10px;
+  margin-bottom: 10px;
   font-size: 17px;
   font-weight: 400;
   color: #333;               /* slightly softer than the title */
@@ -315,35 +316,6 @@ html, body {
   background: #eee;
 }
 
-#filters {
-  padding: 8px 25px 4px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.filter {
-  margin-bottom: 10px;
-}
-
-.filter label {
-  display: block;
-  font-size: 16px;
-  margin-bottom: 4px;
-  font-weight: 300;          /* light label... */
-}
-
-/* ...with the value at 600 so the number pops */
-.filter label span,
-.filter label strong,
-.filter label b,
-.filter label output {
-  font-weight: 600;
-  color: #000;
-}
-
-.filter input[type="range"] {
-  width: 100%;
-  accent-color: #0072B2;
-}
 
 /* ===================== MOBILE ===================== */
 /* Map on top, story panel below as a scrollable sheet.
@@ -472,9 +444,7 @@ html, body {
   }
 
   #info,
-  #filters {
-    flex: 0 0 auto;    /* text keeps its natural height; the sheet scrolls */
-  }
+  
 
   /* ---------- Info ---------- */
   #info {
