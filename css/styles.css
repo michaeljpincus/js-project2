@@ -15,6 +15,8 @@ html, body {
   overflow: hidden;
 }
 
+
+
 /* ===================== LAYOUT ===================== */
 /* Header bar across the top; map left, story panel right, both below the bar. */
 
@@ -33,7 +35,7 @@ html, body {
   background: #fff;
   border-bottom: 1px solid #ddd;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Serif', sans-serif;
 }
 
 .map-title {
@@ -47,7 +49,7 @@ html, body {
 #college-select {
   max-width: 280px;
   padding: 6px 8px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Serif', sans-serif;
   font-size: 16px;
   font-weight: 400;
   border: 1px solid #ccc;
@@ -74,7 +76,7 @@ html, body {
   flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Serif', sans-serif;
   z-index: 1;
 }
 
@@ -104,7 +106,7 @@ html, body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   border-radius: 4px;
   cursor: pointer;
-  font: 400 14px/1.3 'Plus Jakarta Sans', sans-serif;
+  font: 400 14px/1.3 'Roboto Serif', sans-serif;
   display: none;
 }
 
@@ -122,7 +124,7 @@ html, body {
   background: rgba(255, 255, 255, 0.94);
   border-radius: 6px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Serif', sans-serif;
   font-size: 15px;
   font-weight: 400;
 }
@@ -189,7 +191,7 @@ html, body {
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
-  font-family: 'Plus Jakarta Sans';
+  font-family: 'Roboto Serif';
   font-size: 17px;
   font-weight: 400;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
@@ -199,20 +201,20 @@ html, body {
 .college-name {
   font-size: 20px;
   font-weight: 700;
-  font-family: 'Plus Jakarta Sans';
+  font-family: 'Roboto Serif';
   color: black;
 }
 
 .ownership-label {
   font-size: 16px;
   font-weight: 300;
-  font-family: 'Plus Jakarta Sans';
+  font-family: 'Roboto Serif';
   color: gray;
 }
 
-/* ===================== CHART ===================== */
+/* ====================s= CHART ===================== */
 .axis text {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Flex', sans-serif;
   font-size: 12px;
   font-weight: 300;          /* quiet tick labels */
   fill: #666;
@@ -228,23 +230,23 @@ html, body {
 }
 
 .axis-label {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Flex', sans-serif;
   font-size: 13px;
-  font-weight: 400;          /* was 700 */
-  fill: #666;                /* was #222 */
+  font-weight: 400;         
+  fill: #666;                
 }
 
 .chart-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;           /* was 18px, a step below the school name */
-  font-weight: 600;          /* was 700 */
+  font-family: 'Roboto Serif', sans-serif;
+  font-size: 16px;           
+  font-weight: 600;         
   fill: #222;
 }
 
 /* ===================== STORY PANEL ===================== */
 #info {
   padding: 20px 25px 12px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Roboto Serif', sans-serif;
 }
 
 .info-name {
