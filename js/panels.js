@@ -29,21 +29,21 @@ function infoParagraph(p) {
   const parts = [];
 
   if (p.student_pop != null)
-    parts.push(`${esc(p.name)} enrolls about ${bold(fmtInt(p.student_pop))} students.`);
+    parts.push(`${esc(p.name)} enrolls about ${(fmtInt(p.student_pop))} students.`);
 
   if (p.acceptance_rate != null)
-    parts.push(`It admits ${bold(fmtPct(p.acceptance_rate))} of applicants, and ${
+    parts.push(`It admits ${(fmtPct(p.acceptance_rate))} of applicants, and ${
       p.graduation_rate != null
-        ? `${bold(fmtPct(p.graduation_rate))} of students go on to graduate.`
+        ? `${(fmtPct(p.graduation_rate))} of students go on to graduate.`
         : 'graduation data is unavailable.'}`);
   else if (p.graduation_rate != null)
-    parts.push(`${bold(fmtPct(p.graduation_rate))} of students go on to graduate.`);
+    parts.push(`${(fmtPct(p.graduation_rate))} of students go on to graduate.`);
 
   if (p.avg_net_price != null)
-    parts.push(`The average net price is ${bold(fmtUSD(p.avg_net_price))} per year.`);
+    parts.push(`The average net price is ${(fmtUSD(p.avg_net_price))} per year.`);
 
   if (p.earnings_10y_post_grad != null)
-    parts.push(`Ten years after graduation, earnings average around ${bold(fmtUSD(p.earnings_10y_post_grad))}.`);
+    parts.push(`Ten years after graduation, earnings average around ${(fmtUSD(p.earnings_10y_post_grad))}.`);
 
   return parts.length ? parts.join(' ') : 'No additional data is available for this college.';
 }
@@ -89,12 +89,18 @@ export function buildLegend() {
   legendRows.append('span').text(d => d.label);
 
   // Size: sample circles at example enrollments
+   // Size: sample circles scaled to the actual data
   legend.append('div').attr('class', 'legend-title').text('Enrollment');
+
+  const maxPop = d3.max(allProps, p => p.student_pop);
+  const mag = 10 ** Math.floor(Math.log10(maxPop));
+  const top = Math.floor(maxPop / mag) * mag;      // e.g. 38,500 -> 30,000
+  const samples = [top / 10, top / 2, top];        // e.g. 3,000 / 15,000 / 30,000
 
   const sizes = legend.append('div')
     .attr('class', 'legend-sizes')
     .selectAll('.legend-size')
-    .data([5000, 25000, 50000])        // adjust to suit your data
+    .data(samples)
     .join('div')
     .attr('class', 'legend-size');
 
