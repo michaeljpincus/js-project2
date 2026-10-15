@@ -78,12 +78,14 @@ html, body {
   border-left: 1px solid #ddd;
   font-family: 'Roboto Serif', sans-serif;
   z-index: 1;
+  overflow: hidden;
 }
 
 #scatter {
-  flex: 0 0 auto;
-  height: 550px;
-  margin-top: auto;    /* anchors the chart to the bottom */
+  flex: 1 1 0;
+  min-height: 130px;
+  max-height: 550px;     /* the chart never grows taller than this */
+  margin-top: auto;      /* see below */
   overflow: hidden;
   box-sizing: border-box;
   width: 100%;
@@ -212,7 +214,7 @@ html, body {
   color: gray;
 }
 
-/* ====================s= CHART ===================== */
+/* ===================== CHART ===================== */
 .axis text {
   font-family: 'Roboto Flex', sans-serif;
   font-size: 12px;
@@ -247,6 +249,7 @@ html, body {
 #info {
   padding: 20px 25px 12px;
   font-family: 'Roboto Serif', sans-serif;
+  flex: 0 0 auto;
 }
 
 .info-name {
@@ -481,13 +484,13 @@ html, body {
   }
 
   /* ---------- Chart: fixed comfortable height, the sheet scrolls ---------- */
-  #scatter {
-    flex: 0 0 auto;
-    height: 280px;
-    min-height: 0;
-    margin-top: 4px;
-    padding: 0 8px calc(12px + env(safe-area-inset-bottom));
-  }
+ #scatter {
+  flex: 0 0 auto;
+  height: 280px;
+  min-height: 0;
+  margin-top: 4px;
+  padding: 0 8px calc(12px + env(safe-area-inset-bottom));
+}
 
   .chart-title {
     font-size: 14px;

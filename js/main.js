@@ -268,7 +268,7 @@ function updateChart() {
   const availH = scatterBox.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
 
   WIDTH = Math.max(100, availW - MARGIN.left - MARGIN.right);
-  HEIGHT = Math.max(MIN_PLOT_HEIGHT, availH - MARGIN.top - MARGIN.bottom);
+  HEIGHT = Math.max(20, availH - MARGIN.top - MARGIN.bottom);
 
   svgRoot
     .attr('width', WIDTH + MARGIN.left + MARGIN.right)
