@@ -69,13 +69,14 @@ const info = d3.select('#info');
 const legend = d3.select('#legend');
 const collegeSelect = d3.select('#college-select');
 
+// Builds the placeholder 
 function showInfoPlaceholder() {
   info.html('');
   info.append('div')
     .attr('class', 'info-placeholder')
     .text('Click a college on the map or chart to see data from the 2026 U.S. Department of Education College Scorecard.');
 }
-
+// Builds the infor paragraph
 function infoParagraph(p) {
   const parts = [];
 
@@ -99,6 +100,7 @@ function infoParagraph(p) {
   return parts.length ? parts.join(' ') : 'No additional data is available for this college.';
 }
 
+// Shows the info paragraph 
 function showInfo(p) {
   info.html('');
 
@@ -115,6 +117,7 @@ function showInfo(p) {
   info.append('p').attr('class', 'info-text').html(infoParagraph(p));
 }
 
+// Builds the legend 
 function buildLegend() {
   legend.append('div').attr('class', 'legend-title').text('Ownership');
 
@@ -155,6 +158,7 @@ function buildLegend() {
   sizes.append('div').text(d => d3.format(',')(d));
 }
 
+// Builds the dropdown of all colleges 
 function buildDropdown() {
   const sorted = [...allProps].sort((a, b) => d3.ascending(a.name, b.name));
 
@@ -365,7 +369,7 @@ function addCollegeLayer() {
         STUDENT_MAX, radiusScale(STUDENT_MAX)
       ]
     }
-  }, 'cities');   // draw beneath the 'cities' layer
+  }, 'neighborhoods');   // draw beneath the 'cities' layer
 }
 
 function addMapEvents() {
