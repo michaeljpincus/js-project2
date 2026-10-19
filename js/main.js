@@ -15,7 +15,9 @@ const SELECTED_COLOR = 'crimson';
 
 const DOT_RADIUS = 4;
 const DOT_RADIUS_SELECTED = 8;
-const MARGIN = { top: 40, right: 20, bottom: 50, left: 70 };
+const MARGIN_DESKTOP = { top: 40, right: 20, bottom: 50, left: 70 };
+const MARGIN_MOBILE  = { top: 36, right: 12, bottom: 46, left: 60 };
+let MARGIN = MARGIN_DESKTOP;
 const MIN_PLOT_HEIGHT = 80;
 
 const STUDENT_MAX = 100000;
@@ -197,12 +199,6 @@ const y = d3.scaleLinear().domain(d3.extent(plotData, d => d.earnings_10y_post_g
 const xAxisG = svg.append('g').attr('class', 'axis x-axis');
 const yAxisG = svg.append('g').attr('class', 'axis y-axis');
 
-svg.append('text')
-  .attr('class', 'chart-title')
-  .attr('x', -MARGIN.left + 10)
-  .attr('y', -MARGIN.top + 22)
-  .text('Cost vs. earnings');
-
 const xLabel = svg.append('text')
   .attr('class', 'axis-label')
   .attr('text-anchor', 'middle')
@@ -213,7 +209,17 @@ const yLabel = svg.append('text')
   .attr('transform', 'rotate(-90)')
   .attr('y', -MARGIN.left + 16)
   .attr('text-anchor', 'middle')
-  .text('Median earnings 10 years after graduation');
+
+const Y_LABELS = [
+  'Median earnings 10 years after graduation',
+  'Earnings 10 years after graduation',
+  'Earnings after 10 years',
+  'Earnings'
+];
+
+const chartTitle = svg.append('text')
+  .attr('class', 'chart-title')
+  .text('Cost vs. earnings');
 
 const dots = svg.selectAll('.dot')
   .data(plotData, d => d.id)
@@ -267,6 +273,9 @@ function placeTooltip(pageX, pageY) {
 }
 
 function updateChart() {
+  const mobile = window.matchMedia('(max-width: 768px)').matches;
+  MARGIN = mobile ? MARGIN_MOBILE : MARGIN_DESKTOP;
+
   const cs = getComputedStyle(scatterBox);
   const availW = scatterBox.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const availH = scatterBox.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
@@ -277,6 +286,9 @@ function updateChart() {
   svgRoot
     .attr('width', WIDTH + MARGIN.left + MARGIN.right)
     .attr('height', HEIGHT + MARGIN.top + MARGIN.bottom);
+  svg.attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+
+  chartTitle.attr('x', -MARGIN.left + 10).attr('y', -MARGIN.top + 22);
 
   x.range([0, WIDTH]);
   y.range([HEIGHT, 0]);
@@ -287,8 +299,14 @@ function updateChart() {
   yAxisG
     .call(d3.axisLeft(y).ticks(Math.max(2, HEIGHT / 40)).tickFormat(fmtK));
 
-  xLabel.attr('x', WIDTH / 2).attr('y', HEIGHT + 40);
-  yLabel.attr('x', -HEIGHT / 2);
+  xLabel.attr('x', WIDTH / 2).attr('y', HEIGHT + 38);
+
+  // Use the longest y-label that fits within the plot height
+  yLabel.attr('y', -MARGIN.left + 14).attr('x', -HEIGHT / 2);
+  for (const txt of Y_LABELS) {
+    yLabel.text(txt);
+    if (yLabel.node().getComputedTextLength() <= HEIGHT) break;
+  }
 
   dots
     .attr('cx', d => x(d.avg_net_price))
@@ -480,6 +498,12 @@ new ResizeObserver(updateChart).observe(scatterBox);
 updateChart();
 
 map.on('load', () => {
+
+  // Stopping attribution from automatically popping up
+  const attrib = document.querySelector('.maplibregl-ctrl-attrib');
+  attrib?.classList.remove('maplibregl-compact-show');
+  attrib?.removeAttribute('open');
+
   addCollegeLayer();
   addMapEvents();
 });
