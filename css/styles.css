@@ -519,8 +519,7 @@ html, body {
   }
 
   .scatter-tooltip {
-    font-size: 14px;
-    max-width: 70vw;
+    display: none !important;
   }
 }
 
